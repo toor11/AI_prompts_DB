@@ -1,8 +1,8 @@
 # n8n Workflow Prompt — Guide & Template
 
-> **What this file is** — concise explanation of the user's original prompt and what the resulting markdown contains.
+> **What this file is** — concise explanation of the prompt and what the resulting markdown contains.
 
-This document explains the prompt you provided (an instruction for an n8n workflow architect) and supplies a ready-to-use Markdown template that you can paste into your editor. It includes the original prompt (as a script block) and a complete, structured template to create an n8n workflow spec that meets the deliverables and constraints.
+This document explains the prompt (an instruction for an n8n workflow architect) and supplies a ready-to-use Markdown template that you can paste into your editor. It includes the original prompt (as a script block) and a complete, structured template to create an n8n workflow spec that meets the deliverables and constraints.
 
 ---
 
