@@ -1,0 +1,535 @@
+{
+"project": {
+"name": "SILICON EXCHANGE",
+"type": "production-ready frontend web application",
+"description": "A high-end marketplace interface where users can browse and rent idle GPUs and AI accelerators by the hour."
+},
+
+"primary_objective": {
+"goal": "Build a complete, polished, production-quality frontend application that behaves like a real GPU rental marketplace.",
+"scope": [
+"Frontend only",
+"No backend",
+"No database",
+"No authentication server",
+"No API keys",
+"No paid services"
+],
+"data_requirement": "All application data must be deterministic mock data defined locally in the codebase.",
+"runtime_requirement": "The project must run with npm install followed by npm run dev."
+},
+
+"technology_stack": {
+"required": {
+"framework": "Next.js latest stable version using the App Router",
+"language": "TypeScript with strict mode enabled",
+"styling": "Tailwind CSS",
+"animation": "Framer Motion",
+"charts": "Recharts",
+"client_state": "Zustand preferred, or React Context with reducer if necessary",
+"testing": "Vitest"
+},
+"constraints": [
+"Do not replace the required stack unless a dependency is genuinely incompatible with the current stable Next.js version.",
+"Do not introduce unnecessary frameworks or UI kits.",
+"Avoid paid APIs and hosted services.",
+"The application must function without a backend."
+]
+},
+
+"architecture": {
+"recommended_structure": {
+"app": "Routes, layouts, pages, route-level components",
+"components": "Reusable UI components",
+"data": "Typed deterministic mock data and seeded generators",
+"lib": "Pure business logic, pricing, reservations, filters, utilities",
+"store": "Zustand or equivalent client state",
+"types": "Shared TypeScript types",
+"tests": "Vitest unit tests"
+},
+"rules": [
+"Business logic must not be embedded directly inside page components.",
+"Reservation validation, overlap detection, pricing, hold expiry, filtering, and sorting must be implemented as reusable pure TypeScript functions wherever possible.",
+"UI components should consume typed data and business logic rather than duplicating calculations.",
+"Do not use any TypeScript any types.",
+"Prefer explicit domain types, discriminated unions, and readonly data where appropriate."
+]
+},
+
+"mock_data": {
+"location": "/data",
+"requirements": {
+"listing_count": 24,
+"minimum_regions": 5,
+"hardware_examples": [
+"NVIDIA H100",
+"NVIDIA RTX 5090",
+"Apple M3 Ultra",
+"AMD MI300X",
+"NVIDIA RTX Pro 6000"
+],
+"required_listing_fields": [
+"id",
+"slug",
+"name",
+"region",
+"accelerator_model",
+"memory_gb",
+"tflops",
+"hourly_rate_cents",
+"status",
+"utilization_data"
+],
+"status_values": [
+"available",
+"maintenance",
+"retired"
+]
+},
+"utilization_data": {
+"duration": "30 days",
+"interval": "hourly",
+"metrics": [
+"utilization_percent from 0 to 100",
+"power_watts"
+],
+"generation_rule": "Use a seeded pseudo-random generator. The generated data must look organic but produce identical output for the same seed on every application reload.",
+"forbidden": [
+"Math.random during render",
+"Non-deterministic mock data",
+"Network-fetched chart data"
+]
+},
+"reservations": {
+"requirements": [
+"Include multiple pre-existing reservations.",
+"Include at least one edge case where an incorrect or naive overlap algorithm would wrongly allow a conflicting reservation.",
+"Include different reservation states."
+]
+}
+},
+
+"domain_logic": {
+"implementation_rule": "The following rules must be implemented as pure, independently testable TypeScript functions.",
+
+```
+"reservation_overlap": {
+  "rule": "A listing must never have two active reservations whose time ranges overlap.",
+  "interval_model": "Use half-open intervals: [start, end).",
+  "boundary_example": "A reservation ending exactly at 14:00 and another beginning exactly at 14:00 do not overlap.",
+  "ignored_statuses": [
+    "cancelled",
+    "expired"
+  ],
+  "validation_requirements": [
+    "start must be before end",
+    "listing identifiers must match before conflicts are evaluated",
+    "Only active reservation states block availability"
+  ]
+},
+
+"pricing": {
+  "currency_storage": "All monetary values must be represented as integer cents.",
+  "floating_point_rule": "Never use floating-point arithmetic to store or calculate money.",
+  "billing_increment_minutes": 15,
+  "rounding_rule": "Reservation duration must always round upward to the nearest 15-minute billing increment.",
+  "minimum_billable_duration": "60 minutes",
+  "long_reservation_discount": {
+    "threshold": "24 continuous billable hours",
+    "discount_percent": 10,
+    "scope": "Apply the discount only to billable time beyond the first 24 hours.",
+    "example": "A 30-hour booking receives full price for the first 24 hours and a 10 percent discount only on the remaining 6 hours."
+  },
+  "pricing_output": [
+    "requested_duration_minutes",
+    "billable_duration_minutes",
+    "rounding_added_minutes",
+    "base_price_cents",
+    "discount_cents",
+    "total_price_cents"
+  ]
+},
+
+"reservation_holds": {
+  "hold_duration_minutes": 10,
+  "rule": "A reservation in held state automatically becomes expired if it has not been confirmed within 10 minutes.",
+  "availability_rule": "Expired holds immediately stop blocking the corresponding time slot.",
+  "ui_requirement": "Held reservations must display a real-time visible countdown.",
+  "timer_behavior": [
+    "Countdown must update while the UI is open.",
+    "Expiry must still be calculated correctly after page reload.",
+    "The source of truth must be timestamps rather than an in-memory countdown."
+  ]
+},
+
+"maintenance": {
+  "rule": "Listings with maintenance status cannot accept new reservations.",
+  "existing_reservations": "Existing confirmed reservations remain valid and visible."
+},
+
+"persistence": {
+  "storage": "localStorage",
+  "requirements": [
+    "Reservations survive a full page reload.",
+    "Expired holds are re-evaluated when the application initializes.",
+    "Persisted data must be validated or safely migrated if the data structure changes."
+  ]
+}
+```
+
+},
+
+"routes": {
+"/": {
+"name": "Home",
+"requirements": [
+"High-impact hero section.",
+"Animated gradient treatment behind or around the main headline.",
+"A GPUs Online counter computed from the actual mock listing data rather than hardcoded.",
+"Three feature cards.",
+"Clear CTA linking to browse.",
+"Responsive design.",
+"Motion should respect reduced-motion preferences."
+]
+},
+
+```
+"/browse": {
+  "name": "Browse Listings",
+  "requirements": [
+    "Responsive listing grid.",
+    "Search.",
+    "Region filter.",
+    "Memory range filter.",
+    "Status filter.",
+    "Sort by price.",
+    "Sort by memory.",
+    "Sort by TFLOPS.",
+    "Sort by utilization.",
+    "Combined filters must work together.",
+    "Filter and sort state must be represented in the URL query string.",
+    "Refreshing the page must preserve filter state.",
+    "Browser back and forward navigation must restore previous filter states.",
+    "Display a polished empty state when no listings match."
+  ]
+},
+
+"/listings/[slug]": {
+  "name": "Listing Detail",
+  "requirements": [
+    "Detailed accelerator specification sheet.",
+    "24-hour utilization line chart.",
+    "Working hover tooltip for chart data.",
+    "Accessible text summary alternative for chart content.",
+    "Seven-day availability calendar.",
+    "Taken or blocked time slots must be visually distinguishable.",
+    "Reservation form.",
+    "Interactive time-range selection.",
+    "Live price quote that updates immediately as the selected time changes.",
+    "Price breakdown showing requested duration.",
+    "Price breakdown showing billing increments and rounding.",
+    "Price breakdown showing minimum-duration effects when applicable.",
+    "Price breakdown showing long-booking discount.",
+    "Prevent submission of invalid or overlapping reservations.",
+    "Prevent new reservations when the listing is in maintenance or retired state."
+  ]
+},
+
+"/dashboard": {
+  "name": "Reservation Dashboard",
+  "requirements": [
+    "Display reservations stored in localStorage.",
+    "Show reservation status.",
+    "Show live countdown timers for held reservations.",
+    "Automatically update held reservations to expired when appropriate.",
+    "Allow cancellation where cancellation is valid.",
+    "Display a running total of spend.",
+    "Totals must use integer-cent calculations.",
+    "Provide useful empty states."
+  ]
+},
+
+"/compare": {
+  "name": "Compare Accelerators",
+  "requirements": [
+    "Allow selection of up to three listings.",
+    "Prevent selecting more than three.",
+    "Display selected listings side by side.",
+    "Highlight differences across major specifications.",
+    "Remain usable on mobile by adapting comparison layout.",
+    "Selection must persist while navigating between routes."
+  ]
+},
+
+"not_found": {
+  "name": "Custom 404",
+  "requirements": [
+    "Fully custom.",
+    "On-brand.",
+    "Useful navigation back into the application.",
+    "Must not use the default Next.js not-found appearance."
+  ]
+}
+```
+
+},
+
+"design_system": {
+"theme": {
+"default": "dark-first",
+"light_mode": true,
+"persistence": "Theme preference must persist across reloads.",
+"flash_prevention": "Prevent incorrect theme flash before hydration."
+},
+"visual_direction": [
+"Technical industrial aesthetic.",
+"Near-black surfaces.",
+"Subtle layered backgrounds.",
+"Thin hairline borders.",
+"Monospace typography for numeric values, prices, IDs, timestamps, and hardware metrics.",
+"One electric accent color used intentionally and sparingly.",
+"Data-dense but calm.",
+"Visual inspiration should resemble a professional trading terminal rather than a generic SaaS landing page."
+],
+"typography": {
+"fonts": "Use exactly two Google fonts loaded through next/font.",
+"heading_font": "Distinctive technical or modern display font.",
+"body_font": "Highly readable UI font.",
+"network_rule": "Fonts must be self-hosted through next/font."
+},
+"motion": {
+"requirements": [
+"Subtle card hover lift.",
+"Animated focus rings or focus transitions where appropriate.",
+"Smooth section reveals.",
+"Animated hero gradient.",
+"Avoid excessive or distracting animation.",
+"Respect prefers-reduced-motion."
+]
+},
+"responsive_requirements": [
+"Correct at approximately 375px viewport width.",
+"Correct on tablet.",
+"Correct on desktop.",
+"Use available space effectively on large and 4K displays.",
+"Desktop tables must transform into usable card or stacked layouts on small screens.",
+"Charts must remain readable on narrow mobile screens.",
+"No horizontal overflow except where intentionally controlled and accessible."
+]
+},
+
+"accessibility": {
+"requirements": [
+"Full keyboard navigation.",
+"Visible focus states.",
+"Semantic HTML.",
+"Logical heading hierarchy.",
+"Explicit labels for form controls.",
+"ARIA labels for icon-only buttons.",
+"Accessible status announcements where useful.",
+"Text summary alternative for every chart.",
+"Sufficient color contrast.",
+"Do not rely on color alone to communicate status.",
+"Respect prefers-reduced-motion."
+]
+},
+
+"offline_and_assets": {
+"requirements": [
+"Do not use stock photography.",
+"Do not request or depend on external images.",
+"Use inline SVG, CSS gradients, procedural visuals, or locally generated assets.",
+"After dependencies and fonts are available, the application must render correctly without runtime network requests.",
+"No external API dependency for core functionality."
+]
+},
+
+"state_management": {
+"global_state": [
+"Reservations",
+"Comparison selection",
+"Theme preference if not handled separately"
+],
+"url_state": [
+"Browse search",
+"Browse filters",
+"Browse sorting"
+],
+"persistence": [
+"Reservations in localStorage",
+"Theme preference persisted",
+"Comparison selection must survive route navigation"
+]
+},
+
+"testing": {
+"framework": "Vitest",
+"minimum_required_tests": [
+{
+"feature": "Overlap detection",
+"cases": [
+"Clearly overlapping ranges",
+"Non-overlapping ranges",
+"Half-open boundary where one reservation ends exactly when another begins",
+"Cancelled reservation does not block",
+"Expired reservation does not block"
+]
+},
+{
+"feature": "15-minute billing rounding",
+"cases": [
+"Exact 15-minute duration",
+"Duration requiring upward rounding"
+]
+},
+{
+"feature": "Minimum billing duration",
+"cases": [
+"Reservation shorter than one hour",
+"Reservation exactly one hour"
+]
+},
+{
+"feature": "Long reservation discount",
+"cases": [
+"Exactly 24 hours receives no excess discount",
+"More than 24 hours discounts only the duration beyond 24 hours"
+]
+},
+{
+"feature": "Hold expiry",
+"cases": [
+"Still active before 10 minutes",
+"Expires exactly at the 10-minute boundary",
+"Expired hold no longer blocks availability"
+]
+},
+{
+"feature": "Filter and sort logic",
+"cases": [
+"Combined query with multiple filters",
+"Correct sorting result",
+"No matching results"
+]
+}
+],
+"rules": [
+"Tests must validate actual business logic rather than trivial implementation details.",
+"Do not delete, skip, weaken, or comment out failing tests.",
+"Fix the implementation until the tests pass."
+]
+},
+
+"quality_constraints": {
+"forbidden": [
+"TODO comments standing in for implementation",
+"Stubbed business logic",
+"Dead buttons",
+"Controls that do nothing",
+"Lorem Ipsum",
+"TypeScript any types",
+"Fake static counters when real data can be computed",
+"Math.random at render time",
+"Floating-point money calculations",
+"Deleting features to avoid fixing errors",
+"Skipping failing tests"
+],
+"required": [
+"Every interactive control must produce a meaningful result.",
+"Every displayed metric must come from real mock or derived application data.",
+"Error states and empty states must be intentionally designed.",
+"Loading behavior must be appropriate even though data is local.",
+"Code should be organized, maintainable, and production-oriented.",
+"No unused components or dead code."
+]
+},
+
+"implementation_workflow": {
+"instructions": [
+"First inspect the existing repository and understand its current structure.",
+"If the repository already contains a project, preserve working configuration unless a change is required.",
+"Create or update domain types before implementing complex UI.",
+"Implement and test pure business logic before wiring it into components.",
+"Build deterministic mock data.",
+"Implement state and persistence.",
+"Implement routes and responsive UI.",
+"Add accessibility behavior.",
+"Write and run unit tests.",
+"Run the production build.",
+"Fix all TypeScript, lint, test, runtime, and build errors."
+],
+"verification_order": [
+"npm install",
+"npm test",
+"npm run build",
+"npm run dev"
+]
+},
+
+"deliverables": {
+"required_files": [
+"README.md",
+"Complete application source code",
+"Typed mock data under /data",
+"Pure business logic utilities",
+"Vitest test suite"
+],
+"readme_requirements": [
+"Brief description of SILICON EXCHANGE.",
+"Installation instructions.",
+"Development instructions.",
+"Testing instructions.",
+"Production build instructions.",
+"Short explanation of reservation overlap rules.",
+"Short explanation of the pricing rules.",
+"Short explanation of localStorage persistence."
+]
+},
+
+"acceptance_criteria": {
+"all_must_be_true": [
+{
+"command": "npm install",
+"result": "Completes without errors."
+},
+{
+"command": "npm test",
+"result": "Completes successfully with every test passing."
+},
+{
+"command": "npm run build",
+"result": "Completes successfully with zero TypeScript errors and zero ESLint errors."
+},
+{
+"command": "npm run dev",
+"result": "Starts successfully and renders the application using real deterministic mock data."
+},
+{
+"feature": "Reservation system",
+"result": "Overlap prevention, pricing, holds, expiry, maintenance restrictions, cancellation, and localStorage persistence all function correctly."
+},
+{
+"feature": "Browse page",
+"result": "Search, filters, sorting, URL synchronization, refresh persistence, and browser history behavior all work."
+},
+{
+"feature": "Listing page",
+"result": "Chart, availability calendar, interactive reservation selection, validation, and live pricing work."
+},
+{
+"feature": "Responsive design",
+"result": "The application is usable and visually polished on mobile, desktop, and very large displays."
+},
+{
+"feature": "Accessibility",
+"result": "Keyboard navigation, focus states, semantic structure, labels, icon accessibility, chart summaries, and reduced-motion support are implemented."
+}
+]
+},
+
+"final_instruction": {
+"directive": "Implement the entire application end-to-end. Do not stop after scaffolding or partial implementation.",
+"verification": "Run the required commands and inspect the results. If anything fails, diagnose the actual cause and fix the implementation rather than removing, disabling, or weakening the failing feature or test.",
+"completion_definition": "The task is complete only when every acceptance criterion is satisfied and the application looks and behaves like a polished product that could plausibly be shipped by a real company."
+}
+}
